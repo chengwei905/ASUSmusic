@@ -1,39 +1,24 @@
-<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>進階音樂播放器</title>
+  <title>GitHub Pages 音樂播放器</title>
   <style>
     body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
     h1, h2, h3 { margin-top: 1em; }
     #playlist div { cursor: pointer; padding: 5px; margin: 2px 0; background: #eee; border-radius: 4px; }
     #playlist div:hover { background: #ddd; }
-    #playlist .playing { background: #cce5ff; font-weight: bold; }
     #loading { font-style: italic; color: #666; }
     #debug { margin-top: 2em; background: #fffbe6; padding: 1em; border: 1px solid #ccc; border-radius: 6px; }
     #debug ul { padding-left: 1.2em; }
-    #search { margin-top: 1em; padding: 5px; width: 100%; box-sizing: border-box; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
 </head>
 <body>
-  <h1>🎵 進階音樂播放器</h1>
+  <h1>🎵 GitHub Pages 音樂播放器</h1>
   <audio controls></audio>
   <div id="loading">正在載入音樂清單...</div>
 
-  <input type="text" id="search" placeholder="🔍 搜尋歌曲..." />
-
   <h2>播放清單</h2>
   <div id="playlist"></div>
-
-  <div id="debug">
-    <h3>除錯資訊</h3>
-    <p><strong>音訊資料夾：</strong> <span id="music-path"></span></p>
-    <p><strong>載入狀態：</strong> <span id="load-status"></span></p>
-    <p><strong>載入的檔案：</strong></p>
-    <ul id="loaded-files"></ul>
-  </div>
-
   <script>
     const getMusicBase = () => {
       const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
@@ -45,20 +30,6 @@
         const res = await fetch(`${base}playlist.json`);
         if (!res.ok) throw new Error('playlist.json not found');
         return await res.json();
-      } catch (err) {
-        return null;
-      }
-    };
-
-    const fetchM3U = async (base) => {
-      try {
-        const res = await fetch(`${base}playlist.m3u`);
-        const text = await res.text();
-        return text
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line && !line.startsWith('#'))
-          .map(file => base + file);
       } catch (err) {
         return null;
       }
@@ -80,9 +51,6 @@
 
     const loadPlaylist = async () => {
       const base = getMusicBase();
-      const m3uList = await fetchM3U(base);
-      if (m3uList && m3uList.length) return m3uList;
-
       const jsonList = await fetchPlaylistJson(base);
       if (jsonList && jsonList.length) return jsonList.map(file => base + file);
 
@@ -92,29 +60,16 @@
       return [];
     };
 
-    const renderPlaylistUI = (list, currentUrl) => {
+    const renderPlaylistUI = (list) => {
       const container = document.getElementById('playlist');
       container.innerHTML = '';
       list.forEach((url, i) => {
         const item = document.createElement('div');
         item.textContent = url.split('/').pop();
-        if (url === currentUrl) item.classList.add('playing');
-
-        jsmediatags.read(url, {
-          onSuccess: ({ tags }) => {
-            const title = tags.title || url.split('/').pop();
-            const artist = tags.artist || '';
-            item.textContent = artist ? `${artist} - ${title}` : title;
-          },
-          onError: () => {}
-        });
-
         item.onclick = () => {
           const audio = document.querySelector('audio');
           audio.src = url;
           audio.play();
-          localStorage.setItem('lastPlayed', url);
-          renderPlaylistUI(list, url);
         };
         container.appendChild(item);
       });
@@ -135,12 +90,9 @@
       });
     };
 
-    let fullPlaylist = [];
-
     const initPlayer = async () => {
       const base = getMusicBase();
       const playlist = await loadPlaylist();
-      fullPlaylist = playlist;
       document.getElementById('loading').style.display = 'none';
 
       updateDebugInfo(base, playlist);
@@ -151,29 +103,10 @@
       }
 
       const audio = document.querySelector('audio');
-      const lastPlayed = localStorage.getItem('lastPlayed');
-      const defaultTrack = playlist.includes(lastPlayed) ? lastPlayed : playlist[0];
-
-      audio.src = defaultTrack;
+      audio.src = playlist[0];
       audio.play().catch(() => console.log('Autoplay blocked'));
 
-      renderPlaylistUI(playlist, defaultTrack);
-
-      audio.addEventListener('ended', () => {
-        const currentIndex = playlist.indexOf(audio.src);
-        const nextIndex = (currentIndex + 1) % playlist.length;
-        const nextTrack = playlist[nextIndex];
-        audio.src = nextTrack;
-        audio.play();
-        localStorage.setItem('lastPlayed', nextTrack);
-        renderPlaylistUI(playlist, nextTrack);
-      });
-
-      document.getElementById('search').addEventListener('input', (e) => {
-        const keyword = e.target.value.toLowerCase();
-        const filtered = fullPlaylist.filter(url => url.toLowerCase().includes(keyword));
-        renderPlaylistUI(filtered, audio.src);
-      });
+      renderPlaylistUI(playlist);
     };
 
     initPlayer();
