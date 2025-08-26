@@ -6,7 +6,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
   <style>
     body {
-      font-family: DFKai-SB;
+      font-family: DFKai-SB,sans-serif;
       background-color: #c0f4f4;
       display: flex;
       flex-direction: column;
