@@ -58,7 +58,7 @@
     let tracks = [];
 
     function loadTracks() {
-      fetch("tracks/tracks.json")
+      fetch("music/tracks.json")
         .then(res => res.json())
         .then(data => {
           tracks = data;
