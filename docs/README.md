@@ -19,13 +19,7 @@
 
   <h2>播放清單</h2>
   <div id="playlist"></div>
-  <div id="debug">
-    <h3>除錯資訊</h3>
-    <p><strong>音訊資料夾：</strong> <span id="music-path"></span></p>
-    <p><strong>載入狀態：</strong> <span id="load-status"></span></p>
-    <p><strong>載入的檔案：</strong></p>
-    <ul id="loaded-files"></ul>
-  </div>
+  <ul id="loaded-files"></ul>
   <script>
     const getMusicBase = () => {
       const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
