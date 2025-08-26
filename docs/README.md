@@ -22,7 +22,7 @@
       text-align: center;
       color: white;
     }
-    select, audio, input {
+    select, audio {
       width: 100%;
       margin: 10px 0;
     }
@@ -36,7 +36,7 @@
     <h1>🎶音樂播放器</h1>
     <h2 id="media-title">請選擇曲目</h2>
 
-    <div id="metadata">
+    <div id="metadata" >
       <p align="left"><strong>標題:</strong> <span id="meta-title">-</span></p>
       <p align="left"><strong>專輯:</strong> <span id="meta-album">-</span></p>
       <p align="left"><strong>藝術家:</strong> <span id="meta-artist">-</span></p>
@@ -47,6 +47,7 @@
   </div>
 
   <script>
+    const totalTracks = 5; // 根據你有幾首歌決定
     const trackSelector = document.getElementById('track-selector');
     const audioPlayer = document.getElementById('audio-player');
     const mediaTitle = document.getElementById('media-title');
@@ -55,55 +56,50 @@
     const metaAlbum = document.getElementById('meta-album');
     const metaArtist = document.getElementById('meta-artist');
 
-    let tracks = [];
-
     function loadTracks() {
-      fetch("music/tracks.json")
-        .then(res => res.json())
-        .then(data => {
-          tracks = data;
-          trackSelector.innerHTML = "";
-
-          tracks.forEach((file, i) => {
-            const option = document.createElement('option');
-            option.value = file;
-            option.textContent = file;
-            trackSelector.appendChild(option);
-          });
-
-          if (tracks.length > 0) {
-            playTrack(tracks[0]);
-            trackSelector.value = tracks[0];
-          }
-        })
-        .catch(err => {
-          console.error("無法載入 tracks.json:", err);
-        });
+      for (let i = 1; i <= totalTracks; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Track ${i}`;
+        trackSelector.appendChild(option);
+      }
+      // 預設播放第一首
+      playTrack(1);
+      trackSelector.value = 1;
     }
 
-    function playTrack(file) {
-      const filePath = `tracks/${file}`;
+    function playTrack(index) {
+      const filePath = `tracks/track-${index}.mp3`;
       audioPlayer.src = filePath;
       audioPlayer.play();
 
-      mediaTitle.textContent = file;
+      mediaTitle.textContent = `Track ${index}`;
       metaTitle.textContent = ' ';
       metaAlbum.textContent = ' ';
       metaArtist.textContent = ' ';
 
+      // 從網址載入 mp3 並轉為 blob
       fetch(filePath)
-        .then(res => res.blob())
+        .then(response => {
+          if (!response.ok) throw new Error('MP3 載入失敗');
+          return response.blob();
+        })
         .then(blob => {
           jsmediatags.read(blob, {
-            onSuccess: tag => {
+            onSuccess: function(tag) {
               const tags = tag.tags;
               metaTitle.textContent = tags.title || '(無標題)';
               metaAlbum.textContent = tags.album || '(無專輯)';
               metaArtist.textContent = tags.artist || '(無藝術家)';
               if (tags.title) mediaTitle.textContent = tags.title;
             },
-            onError: err => console.error("Metadata 讀取失敗:", err)
+            onError: function(error) {
+              console.error("Metadata 讀取失敗：", error);
+            }
           });
+        })
+        .catch(error => {
+          console.error("MP3 下載或 metadata 解析錯誤：", error);
         });
     }
 
@@ -112,10 +108,9 @@
     });
 
     audioPlayer.addEventListener('ended', () => {
-      const current = trackSelector.value;
-      const idx = tracks.indexOf(current);
-      if (idx >= 0 && idx + 1 < tracks.length) {
-        const next = tracks[idx + 1];
+      const current = parseInt(trackSelector.value);
+      const next = current + 1;
+      if (next <= totalTracks) {
         trackSelector.value = next;
         playTrack(next);
       }
