@@ -7,6 +7,7 @@
     h1, h2, h3 { margin-top: 1em; }
     #playlist div { cursor: pointer; padding: 5px; margin: 2px 0; background: #eee; border-radius: 4px; }
     #playlist div:hover { background: #ddd; }
+    #playlist .playing { background: #cce5ff; font-weight: bold; }
     #loading { font-style: italic; color: #666; }
     #debug { margin-top: 2em; background: #fffbe6; padding: 1em; border: 1px solid #ccc; border-radius: 6px; }
     #debug ul { padding-left: 1.2em; }
@@ -69,16 +70,19 @@
       return [];
     };
 
-    const renderPlaylistUI = (list) => {
+    const renderPlaylistUI = (list, currentUrl) => {
       const container = document.getElementById('playlist');
       container.innerHTML = '';
       list.forEach((url, i) => {
         const item = document.createElement('div');
         item.textContent = url.split('/').pop();
+        if (url === currentUrl) item.classList.add('playing');
         item.onclick = () => {
           const audio = document.querySelector('audio');
           audio.src = url;
           audio.play();
+          localStorage.setItem('lastPlayed', url);
+          renderPlaylistUI(list, url);
         };
         container.appendChild(item);
       });
@@ -112,10 +116,23 @@
       }
 
       const audio = document.querySelector('audio');
-      audio.src = playlist[0];
+      const lastPlayed = localStorage.getItem('lastPlayed');
+      const defaultTrack = playlist.includes(lastPlayed) ? lastPlayed : playlist[0];
+
+      audio.src = defaultTrack;
       audio.play().catch(() => console.log('Autoplay blocked'));
 
-      renderPlaylistUI(playlist);
+      renderPlaylistUI(playlist, defaultTrack);
+
+      audio.addEventListener('ended', () => {
+        const currentIndex = playlist.indexOf(audio.src);
+        const nextIndex = (currentIndex + 1) % playlist.length;
+        const nextTrack = playlist[nextIndex];
+        audio.src = nextTrack;
+        audio.play();
+        localStorage.setItem('lastPlayed', nextTrack);
+        renderPlaylistUI(playlist, nextTrack);
+      });
     };
 
     initPlayer();
