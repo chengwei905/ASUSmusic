@@ -1,1 +1,92 @@
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>音樂播放器</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
+    #playlist div { cursor: pointer; padding: 5px; margin: 2px 0; background: #eee; border-radius: 4px; }
+    #playlist div:hover { background: #ddd; }
+    #loading { font-style: italic; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>🎵 我的音樂播放器</h1>
+  <audio controls></audio>
+  <div id="loading">正在載入音樂清單...</div>
+  <h2>播放清單</h2>
+  <div id="playlist"></div>
 
+  <script>
+    const getMusicBase = () => '/music/';
+
+    const fetchPlaylistJson = async (base) => {
+      try {
+        const res = await fetch(`${base}playlist.json`);
+        if (!res.ok) throw new Error('playlist.json not found');
+        return await res.json();
+      } catch (err) {
+        return null;
+      }
+    };
+
+    const fetchAutoIndex = async (base) => {
+      try {
+        const res = await fetch(base);
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return [...doc.querySelectorAll('a')]
+          .map(a => a.getAttribute('href'))
+          .filter(href => href && href.endsWith('.mp3'))
+          .map(href => base + href);
+      } catch (err) {
+        return [];
+      }
+    };
+
+    const loadPlaylist = async () => {
+      const base = getMusicBase();
+      const jsonList = await fetchPlaylistJson(base);
+      if (jsonList && jsonList.length) return jsonList.map(file => base + file);
+
+      const autoList = await fetchAutoIndex(base);
+      if (autoList.length) return autoList;
+
+      return [];
+    };
+
+    const renderPlaylistUI = (list) => {
+      const container = document.getElementById('playlist');
+      container.innerHTML = '';
+      list.forEach((url, i) => {
+        const item = document.createElement('div');
+        item.textContent = url.split('/').pop();
+        item.onclick = () => {
+          const audio = document.querySelector('audio');
+          audio.src = url;
+          audio.play();
+        };
+        container.appendChild(item);
+      });
+    };
+
+    const initPlayer = async () => {
+      const playlist = await loadPlaylist();
+      const loading = document.getElementById('loading');
+      loading.style.display = 'none';
+
+      if (!playlist.length) {
+        alert('找不到預設音樂，請確認 /music 資料夾是否存在音訊檔案');
+        return;
+      }
+
+      const audio = document.querySelector('audio');
+      audio.src = playlist[0];
+      audio.play().catch(() => console.log('Autoplay blocked'));
+
+      renderPlaylistUI(playlist);
+    };
+
+    initPlayer();
+  </script>
+</body>
+</html>
