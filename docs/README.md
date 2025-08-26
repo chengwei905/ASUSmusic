@@ -69,7 +69,7 @@
     }
 
     function playTrack(index) {
-      const filePath = `tracks/track-${index}.mp3`;
+      const filePath = `music/track-${index}.mp3`;
       audioPlayer.src = filePath;
       audioPlayer.play();
 
